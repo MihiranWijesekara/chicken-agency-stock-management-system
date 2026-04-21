@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 6, // bump version for Sales table and consistency
+      version: 7, // bump version for Sales table and consistency
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
       onDowngrade: onDatabaseDowngradeDelete,
@@ -41,6 +41,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE roots (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        PaymentMethod TEXT,
         name TEXT NOT NULL
       )
     ''');
@@ -146,11 +147,22 @@ class DatabaseHelper {
           quantity_grams INTEGER,
           amount REAL DEFAULT 0,
           Vat_Number TEXT,
+          PaymentMethod TEXT,
           added_date TEXT,
           FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE SET NULL,
           FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE SET NULL
         )
       ''');
+    }
+
+    if (oldVersion < 7) {
+      final salesColumns = await db.rawQuery('PRAGMA table_info(Sales)');
+      final hasPaymentMethod = salesColumns.any(
+        (c) => c['name'] == 'PaymentMethod',
+      );
+      if (!hasPaymentMethod) {
+        await db.execute('ALTER TABLE Sales ADD COLUMN PaymentMethod TEXT');
+      }
     }
   }
 
@@ -264,6 +276,7 @@ class DatabaseHelper {
         'quantity_grams',
         'amount',
         'Vat_Number',
+        'PaymentMethod',
         'added_date',
         'QTY',
       };

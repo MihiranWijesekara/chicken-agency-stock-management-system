@@ -1,4 +1,5 @@
 import 'package:chicken_dilivery/pages/Managemnt/managementDashboard.dart';
+import 'package:chicken_dilivery/pages/sales/addSales.dart';
 import 'package:chicken_dilivery/pages/sales/allSalesDashboard.dart';
 import 'package:chicken_dilivery/pages/sales/salesDashboard.dart';
 import 'package:chicken_dilivery/pages/stock/allStockDashboard.dart';
@@ -178,6 +179,32 @@ class DashboardPage extends StatelessWidget {
           itemBuilder: (context, index) {
             return _DashboardCard(cardData: cards[index]);
           },
+        ),
+      ),
+
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          // Navigate to Add Item page
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Addsales()),
+          );
+        },
+        backgroundColor: const Color.fromARGB(255, 26, 11, 167),
+        elevation: 4,
+        icon: const Icon(
+          Icons.add_circle_outline,
+          color: Colors.white,
+          size: 24,
+        ),
+        label: const Text(
+          'Add Sales',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );

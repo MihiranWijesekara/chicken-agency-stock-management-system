@@ -7,6 +7,7 @@ class Salesmodel {
   final int? quantityKg;
   final double? amount;
   final String? vatNumber;
+  final String? paymentMethod;
   final String? addedDate;
   final String? shopName;
   final int? qty;
@@ -20,6 +21,7 @@ class Salesmodel {
     this.quantityKg,
     this.amount,
     this.vatNumber,
+    this.paymentMethod,
     this.addedDate,
     this.shopName,
     this.qty,
@@ -36,6 +38,7 @@ class Salesmodel {
       'quantity_grams': quantityKg,
       'amount': amount,
       'Vat_Number': vatNumber,
+      'PaymentMethod': paymentMethod,
       'added_date': addedDate,
       'QTY': qty,
     };
@@ -52,6 +55,7 @@ class Salesmodel {
       quantityKg: map['quantity_grams'],
       amount: map['amount'],
       vatNumber: map['Vat_Number'],
+      paymentMethod: map['PaymentMethod'],
       addedDate: map['added_date'],
       shopName: map['shop_name'],
       qty: map['QTY'],

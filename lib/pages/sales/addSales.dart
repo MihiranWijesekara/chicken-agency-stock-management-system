@@ -18,6 +18,7 @@ class Addsales extends StatefulWidget {
 
 class _AddsalesState extends State<Addsales> {
   final _formKey = GlobalKey<FormState>();
+  final List<String> _paymentMethods = const ['Cash', 'Check', 'Debit'];
   final _sellingRateController = TextEditingController();
   final _billNumberController = TextEditingController();
   final _vatController = TextEditingController();
@@ -28,6 +29,7 @@ class _AddsalesState extends State<Addsales> {
 
   DateTime? _selectedDate;
   int? _selectedItemId;
+  String? _selectedPaymentMethod;
 
   //stock model
   List<StockModel> _stockList = [];
@@ -383,8 +385,18 @@ class _AddsalesState extends State<Addsales> {
       final billNumber = _billNumberController.text;
       final date = _dateController.text;
       final vatNumber = _vatController.text;
+      final paymentMethod = _selectedPaymentMethod;
+      if (paymentMethod == null || paymentMethod.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a payment method'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
       debugPrint(
-        'Saving sales: billNo=$billNumber, date=$date, vat=$vatNumber',
+        'Saving sales: billNo=$billNumber, date=$date, vat=$vatNumber, paymentMethod=$paymentMethod',
       );
       for (var cartItem in _cartItems) {
         final int qtyGrams = (cartItem.weight * 1000)
@@ -409,6 +421,7 @@ class _AddsalesState extends State<Addsales> {
 
           amount: cartItem.amount,
           vatNumber: vatNumber,
+          paymentMethod: paymentMethod,
           addedDate: date,
           qty: int.tryParse(_qtyController.text),
         );
@@ -422,6 +435,7 @@ class _AddsalesState extends State<Addsales> {
         // If your Sales table expects item_id / selling_price, ensure these exist:
         saleMap['item_id'] = cartItem.itemId;
         saleMap['selling_price'] = cartItem.sellingPrice.toInt();
+        saleMap['PaymentMethod'] = paymentMethod;
 
         await DatabaseHelper.instance.insertSaleFIFO(saleMap);
       }
@@ -527,8 +541,10 @@ class _AddsalesState extends State<Addsales> {
             const SizedBox(height: 10),
             _buildShopField(),
             const SizedBox(height: 10),
-            _buildVatField(),
-            const SizedBox(height: 18),
+            _buildPaymentMethodField(),
+            const SizedBox(height: 10),
+            // _buildVatField(),
+            // const SizedBox(height: 18),
 
             // Item Entry Section
             _buildSectionHeader('Add Items'),
@@ -931,7 +947,7 @@ class _AddsalesState extends State<Addsales> {
     );
   }
 
-  Widget _buildVatField() {
+  Widget _buildPaymentMethodField() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -951,14 +967,22 @@ class _AddsalesState extends State<Addsales> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'VAT Number',
+              'Payment Method',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 6),
-            TextFormField(
-              controller: _vatController,
+            DropdownButtonFormField<String>(
+              value: _selectedPaymentMethod,
+              items: _paymentMethods
+                  .map(
+                    (method) => DropdownMenuItem<String>(
+                      value: method,
+                      child: Text(method),
+                    ),
+                  )
+                  .toList(),
               decoration: InputDecoration(
-                hintText: 'Enter VAT number',
+                hintText: 'Select payment method',
                 filled: true,
                 fillColor: const Color(0xFFF5F7FA),
                 border: OutlineInputBorder(
@@ -971,12 +995,64 @@ class _AddsalesState extends State<Addsales> {
                 ),
                 isDense: true,
               ),
+              onChanged: (val) {
+                setState(() {
+                  _selectedPaymentMethod = val;
+                });
+              },
             ),
           ],
         ),
       ),
     );
   }
+
+  // Widget _buildVatField() {
+  //   return Container(
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(8),
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: Colors.grey.withOpacity(0.08),
+  //           spreadRadius: 0,
+  //           blurRadius: 3,
+  //           offset: const Offset(0, 1),
+  //         ),
+  //       ],
+  //     ),
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(12.0),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           const Text(
+  //             'VAT Number',
+  //             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+  //           ),
+  //           const SizedBox(height: 6),
+  //           TextFormField(
+  //             controller: _vatController,
+  //             decoration: InputDecoration(
+  //               hintText: 'Enter VAT number',
+  //               filled: true,
+  //               fillColor: const Color(0xFFF5F7FA),
+  //               border: OutlineInputBorder(
+  //                 borderRadius: BorderRadius.circular(6),
+  //                 borderSide: const BorderSide(color: Colors.black),
+  //               ),
+  //               contentPadding: const EdgeInsets.symmetric(
+  //                 horizontal: 12,
+  //                 vertical: 10,
+  //               ),
+  //               isDense: true,
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildItemField() {
     return Container(

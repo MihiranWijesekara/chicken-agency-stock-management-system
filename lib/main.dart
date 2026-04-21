@@ -2,25 +2,35 @@ import 'package:chicken_dilivery/pages/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'dart:io';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'database/database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
+  if (kIsWeb) {
+    databaseFactory = databaseFactoryFfiWeb;
+  } else if (defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux ||
+      defaultTargetPlatform == TargetPlatform.macOS) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
 
-  if (!kIsWeb) {
-    final db = await DatabaseHelper.instance.database;
-    print(
-      '[APP] DB opened. Tables: ${await DatabaseHelper.instance.getAllTableNames()}',
-    );
-  } else {
-    print('[APP] Web runtime detected. Skipping native SQLite init.');
+  try {
+    await DatabaseHelper.instance.database;
+  } catch (e) {
+    if (kIsWeb) {
+      // Fallback for browsers/environments where shared-worker init can fail.
+      databaseFactory = databaseFactoryFfiWebNoWebWorker;
+      await DatabaseHelper.instance.database;
+    } else {
+      rethrow;
+    }
   }
+  print(
+    '[APP] DB opened. Tables: ${await DatabaseHelper.instance.getAllTableNames()}',
+  );
 
   runApp(const MyApp());
 }

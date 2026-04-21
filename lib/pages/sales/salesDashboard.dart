@@ -93,6 +93,21 @@ class _SalesDashboardState extends State<SalesDashboard> {
           );
         },
       ),
+
+      _DashCardData(
+        title: 'Payment Method',
+        subtitle: 'Cash, Check, and Debit sales',
+        icon: Icons.payments_outlined,
+        color: const Color(0xFFFF9800),
+        gradientColors: [const Color(0xFFFF9800), const Color(0xFFFFB74D)],
+        onTap: () {
+          // Navigate to Root page
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Monthlysales()),
+          );
+        },
+      ),
     ];
 
     return Scaffold(
@@ -401,9 +416,9 @@ class _DashboardCardState extends State<_DashboardCard>
                     widget.cardData.title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
+                      letterSpacing: 0.4,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -411,7 +426,7 @@ class _DashboardCardState extends State<_DashboardCard>
                     widget.cardData.subtitle,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w400,
                     ),
                   ),

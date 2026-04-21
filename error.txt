@@ -1,12 +1,15 @@
-1- Gram ganaath adu wena widiyta ona hadanna = Done
-2- item id eka display wena eke aulak thiyenawa = Done
+1 = seales add part this check , cash or naya
+2 = sales add karankota price eke aulk enawa
+3 = sales add eke gram gana eka hadanna ona
+4 = sales eke summary ekak widiyta pennana ona iteam eke kochara wikinilada labaya kohomada kiyala rate ekath ekak
+5 = set karanna widiyam tika ekathu karanna thenak
 
-5 - sales eka display wena eke aulk thioyenawa = Done
-6 - Recipt print wena ekata model ekak set karanna = Done
 
 
-3 - sales delete wenakota e tika stock ekata add wenna ona
-7 = All sales and All stock display 2026/1 this month disply current year  , but can't display past 
-year january month sales and stock
+--- Add sales walata set karanna ona drop down button ekak eke danna ona cash da check da nathnm 
+nayatada kiyala 
+data base eke aluth cloumn ekak add karanna ona okata 
 
-8 = 
+--- Payment method eke pennanne debit and check sales meke udin drop down ekak danawa all , check and debit 
+all display all sales (check and debit )
+check display only check 
