@@ -1,4 +1,5 @@
 import 'package:chicken_dilivery/pages/Managemnt/managementDashboard.dart';
+import 'package:chicken_dilivery/pages/Report/report.dart';
 import 'package:chicken_dilivery/pages/sales/addSales.dart';
 import 'package:chicken_dilivery/pages/sales/allSalesDashboard.dart';
 import 'package:chicken_dilivery/pages/sales/salesDashboard.dart';
@@ -83,6 +84,23 @@ class DashboardPage extends StatelessWidget {
             MaterialPageRoute(
               builder: (context) => const Managementdashboard(),
             ),
+          );
+        },
+      ),
+      _DashCardData(
+        title: 'Reports',
+        subtitle: 'Generate reports',
+        icon: Icons.bar_chart_outlined,
+        // Using a vibrant Indigo to contrast the Pink and Brown cards
+        color: const Color(0xFF5C6BC0),
+        gradientColors: [
+          const Color(0xFF5C6BC0), // Lighter top-left
+          const Color(0xFF3F51B5), // Darker bottom-right for depth
+        ],
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ReportPage()),
           );
         },
       ),

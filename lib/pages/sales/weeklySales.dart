@@ -15,6 +15,8 @@ class _WeeklysalesState extends State<Weeklysales> {
   bool isLoading = false;
   List<Map<String, dynamic>> _items = [];
 
+  double profit = 0.0;
+
   int _currentPage = 0;
   final int _pageSize = 30;
 
@@ -26,6 +28,14 @@ class _WeeklysalesState extends State<Weeklysales> {
     super.initState();
     _loadItems();
     _loadStocks();
+    _weeklyProfit();
+  }
+
+  Future<void> _weeklyProfit() async {
+    final result = await DatabaseHelper.instance.getWeeklyTotalProfit();
+    setState(() {
+      profit = result is num ? result.toDouble() : 0.0;
+    });
   }
 
   Future<void> _loadItems() async {
@@ -354,6 +364,43 @@ class _WeeklysalesState extends State<Weeklysales> {
                                 ),
                               ),
                             ],
+                          ),
+                        ],
+                      ),
+
+                      Row(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 35,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Profit',
+                                  style: TextStyle(
+                                    color: const Color.fromARGB(244, 3, 3, 3),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  'RS ${profit.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: const Color.fromARGB(255, 0, 0, 0),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
