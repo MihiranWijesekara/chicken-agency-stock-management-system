@@ -8,6 +8,7 @@ class Salesmodel {
   final double? amount;
   final String? vatNumber;
   final String? paymentMethod;
+  final int? isChecked;
   final String? addedDate;
   final String? shopName;
   final int? qty;
@@ -22,6 +23,7 @@ class Salesmodel {
     this.amount,
     this.vatNumber,
     this.paymentMethod,
+    this.isChecked,
     this.addedDate,
     this.shopName,
     this.qty,
@@ -39,6 +41,7 @@ class Salesmodel {
       'amount': amount,
       'Vat_Number': vatNumber,
       'PaymentMethod': paymentMethod,
+      'is_checked': isChecked,
       'added_date': addedDate,
       'QTY': qty,
     };
@@ -56,6 +59,7 @@ class Salesmodel {
       amount: map['amount'],
       vatNumber: map['Vat_Number'],
       paymentMethod: map['PaymentMethod'],
+      isChecked: map['is_checked'],
       addedDate: map['added_date'],
       shopName: map['shop_name'],
       qty: map['QTY'],

@@ -24,8 +24,7 @@ class _AddsalesState extends State<Addsales> {
   final _vatController = TextEditingController();
   final _dateController = TextEditingController();
   final _qtyController = TextEditingController(); // <-- Add this line
-  final _kgController = TextEditingController();
-  final _gramController = TextEditingController();
+  final _weightController = TextEditingController();
 
   DateTime? _selectedDate;
   int? _selectedItemId;
@@ -70,8 +69,7 @@ class _AddsalesState extends State<Addsales> {
     _vatController.dispose();
     _dateController.dispose();
     _qtyController.dispose();
-    _kgController.dispose();
-    _gramController.dispose();
+    _weightController.dispose();
     super.dispose();
   }
 
@@ -202,9 +200,7 @@ class _AddsalesState extends State<Addsales> {
     debugPrint('--- _addToCart called ---');
     debugPrint('Selected item id: [32m$_selectedItemId[0m');
     debugPrint('Selling rate: [32m${_sellingRateController.text}[0m');
-    debugPrint(
-      'KG: [32m${_kgController.text}[0m, Gram: [32m${_gramController.text}[0m',
-    );
+    debugPrint('Weight: [32m${_weightController.text}[0m');
     if (_selectedItemId == null) {
       debugPrint('No item selected.');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -216,34 +212,37 @@ class _AddsalesState extends State<Addsales> {
       return;
     }
 
-    if (_sellingRateController.text.isEmpty ||
-        (_kgController.text.isEmpty && _gramController.text.isEmpty)) {
-      debugPrint('Selling rate or both kg and gram are empty.');
+    if (_sellingRateController.text.isEmpty || _weightController.text.isEmpty) {
+      debugPrint('Selling rate or weight is empty.');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter selling price and weight (kg or gram)'),
+          content: Text('Please enter selling price and weight'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    // Parse kg and gram, default to 0 if empty
-    final kg = int.tryParse(_kgController.text) ?? 0;
-    final gram = int.tryParse(_gramController.text) ?? 0;
-    debugPrint('Parsed kg: $kg, gram: $gram');
-    if (kg < 0 || gram < 0 || gram > 999) {
-      debugPrint('Invalid kg or gram value.');
+    final weightText = _weightController.text.trim();
+    final weightPattern = RegExp(r'^\d+(\.\d{1,3})?$');
+    if (!weightPattern.hasMatch(weightText)) {
+      debugPrint('Invalid weight format: $weightText');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Invalid kg or gram value'),
+          content: Text('Enter weight like 2.500 (kg.gram)'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
+
+    final parts = weightText.split('.');
+    final kg = int.tryParse(parts[0]) ?? 0;
+    final gramsText = parts.length > 1 ? parts[1].padRight(3, '0') : '000';
+    final gram = int.tryParse(gramsText) ?? 0;
     final weight = kg + (gram / 1000);
-    debugPrint('Calculated weight: $weight');
+
+    debugPrint('Parsed kg: $kg, gram: $gram, total weight: $weight');
     if (weight <= 0) {
       debugPrint('Weight <= 0');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -287,8 +286,7 @@ class _AddsalesState extends State<Addsales> {
       // Clear fields
       _selectedItemId = null;
       _sellingRateController.clear();
-      _kgController.clear();
-      _gramController.clear();
+      _weightController.clear();
     });
 
     debugPrint('Cart items count: ${_cartItems.length}');
@@ -1187,102 +1185,53 @@ class _AddsalesState extends State<Addsales> {
               ),
             ),
             const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _kgController,
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(fontSize: 14),
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      hintText: 'Kg',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF5F7FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Colors.black, width: 1),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Colors.black, width: 1),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Colors.black, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      isDense: true,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'kg?';
-                      }
-                      if (int.tryParse(value) == null) {
-                        return 'Invalid';
-                      }
-                      if (int.parse(value) < 0) {
-                        return 'Invalid';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _gramController,
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(fontSize: 14),
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      hintText: 'Gram',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF5F7FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Colors.black, width: 1),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Colors.black, width: 1),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        borderSide: BorderSide(color: Colors.black, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      isDense: true,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'gram?';
-                      }
-                      if (int.tryParse(value) == null) {
-                        return 'Invalid';
-                      }
-                      if (int.parse(value) < 0 || int.parse(value) > 999) {
-                        return '0-999';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
+            TextFormField(
+              controller: _weightController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: TextStyle(fontSize: 14),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                LengthLimitingTextInputFormatter(8),
               ],
+              decoration: InputDecoration(
+                hintText: '2.500',
+                suffixText: 'kg',
+                helperText: 'Format: kg.gram (e.g. 2.500 = 2kg 500g)',
+                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                filled: true,
+                fillColor: const Color(0xFFF5F7FA),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(color: Colors.black, width: 1),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(color: Colors.black, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(color: Colors.black, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                isDense: true,
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Enter weight';
+                }
+                final valid = RegExp(
+                  r'^\d+(\.\d{1,3})?$',
+                ).hasMatch(value.trim());
+                if (!valid) {
+                  return 'Use 2.500 format';
+                }
+                return null;
+              },
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:chicken_dilivery/database/database_helper.dart';
 import 'package:chicken_dilivery/pages/sales/addSales.dart';
 import 'package:chicken_dilivery/pages/sales/monthlySales.dart';
+import 'package:chicken_dilivery/pages/sales/paymentMethod.dart';
 import 'package:chicken_dilivery/pages/sales/todaySales.dart';
 import 'package:chicken_dilivery/pages/sales/weeklySales.dart';
 import 'package:flutter/material.dart';
@@ -96,7 +97,7 @@ class _SalesDashboardState extends State<SalesDashboard> {
 
       _DashCardData(
         title: 'Payment Method',
-        subtitle: 'Cash, Check, and Debit sales',
+        subtitle: 'Check, and Debit sales',
         icon: Icons.payments_outlined,
         color: const Color(0xFFFF9800),
         gradientColors: [const Color(0xFFFF9800), const Color(0xFFFFB74D)],
@@ -104,7 +105,7 @@ class _SalesDashboardState extends State<SalesDashboard> {
           // Navigate to Root page
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const Monthlysales()),
+            MaterialPageRoute(builder: (context) => const PaymentMethod()),
           );
         },
       ),

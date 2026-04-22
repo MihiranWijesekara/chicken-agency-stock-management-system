@@ -3,19 +3,17 @@ import 'package:chicken_dilivery/database/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class Todaysales extends StatefulWidget {
-  const Todaysales({super.key});
+class PaymentMethod extends StatefulWidget {
+  const PaymentMethod({super.key});
 
   @override
-  State<Todaysales> createState() => _TodaysalesState();
+  State<PaymentMethod> createState() => _PaymentMethodState();
 }
 
-class _TodaysalesState extends State<Todaysales> {
+class _PaymentMethodState extends State<PaymentMethod> {
   List<Salesmodel> sales = [];
   bool isLoading = false;
   List<Map<String, dynamic>> _items = [];
-
-  double profit = 0.0;
 
   int _currentPage = 0;
   final int _pageSize = 30;
@@ -28,14 +26,6 @@ class _TodaysalesState extends State<Todaysales> {
     super.initState();
     _loadItems();
     _loadStocks();
-    _dailyProfit();
-  }
-
-  Future<void> _dailyProfit() async {
-    final result = await DatabaseHelper.instance.getTodayTotalProfit();
-    setState(() {
-      profit = result is num ? result.toDouble() : 0.0;
-    });
   }
 
   Future<void> _loadItems() async {
@@ -48,7 +38,7 @@ class _TodaysalesState extends State<Todaysales> {
   Future<void> _loadStocks() async {
     setState(() => isLoading = true);
     try {
-      final data = await DatabaseHelper.instance.getTodaySales();
+      final data = await DatabaseHelper.instance.getPaymentMethods();
       setState(() {
         sales = data.map((map) => Salesmodel.fromMap(map)).toList();
         isLoading = false;
@@ -58,6 +48,46 @@ class _TodaysalesState extends State<Todaysales> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error loading sales: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _markBillAsPaid(List<Salesmodel> billSales) async {
+    final billIds = billSales
+        .where((sale) => sale.id != null)
+        .map((sale) => sale.id!)
+        .toList();
+
+    if (billIds.isEmpty) return;
+
+    try {
+      for (final saleId in billIds) {
+        await DatabaseHelper.instance.updateSale(saleId, {'is_checked': 1});
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        sales.removeWhere((sale) => billIds.contains(sale.id));
+        _expandedBills.removeWhere((key) {
+          final billNo = key.split('|').first;
+          return billSales.any((sale) => sale.billNo == billNo);
+        });
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bill marked as paid'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating payment status: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -447,7 +477,7 @@ class _TodaysalesState extends State<Todaysales> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Today Sales',
+                                'Payment Methods',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
@@ -456,43 +486,6 @@ class _TodaysalesState extends State<Todaysales> {
                                 ),
                               ),
                             ],
-                          ),
-                        ],
-                      ),
-
-                      Row(
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.only(top: 6),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 35,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Profit',
-                                  style: TextStyle(
-                                    color: const Color.fromARGB(244, 3, 3, 3),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                Text(
-                                  'RS ${profit.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    color: const Color.fromARGB(255, 0, 0, 0),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         ],
                       ),
@@ -760,13 +753,48 @@ class _TodaysalesState extends State<Todaysales> {
                                                       ),
                                                     ),
 
-                                                    Text(
-                                                      'Total: ${totalAmount.toStringAsFixed(2)}',
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                      ),
+                                                    Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .end,
+                                                      children: [
+                                                        Text(
+                                                          'Total: ${totalAmount.toStringAsFixed(2)}',
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 11,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                              ),
+                                                        ),
+                                                        Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Checkbox(
+                                                              value: false,
+                                                              visualDensity:
+                                                                  VisualDensity
+                                                                      .compact,
+                                                              materialTapTargetSize:
+                                                                  MaterialTapTargetSize
+                                                                      .shrinkWrap,
+                                                              onChanged: (_) {
+                                                                _markBillAsPaid(
+                                                                  billSales,
+                                                                );
+                                                              },
+                                                            ),
+                                                            const Text(
+                                                              'Paid',
+                                                              style: TextStyle(
+                                                                fontSize: 10,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
                                                     ),
                                                   ],
                                                 ),

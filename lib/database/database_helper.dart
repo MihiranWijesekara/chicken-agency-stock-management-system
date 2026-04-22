@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 7, // bump version for Sales table and consistency
+      version: 8, // bump version to ensure Sales.PaymentMethod migration runs
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
       onDowngrade: onDatabaseDowngradeDelete,
@@ -80,6 +80,8 @@ class DatabaseHelper {
         quantity_grams INTEGER,
         amount REAL DEFAULT 0,            -- NEW COLUMN
         Vat_Number TEXT,
+        PaymentMethod TEXT,
+        is_checked INTEGER DEFAULT 0,
         QTY INTEGER,
         added_date TEXT,
         FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE SET NULL,
@@ -148,6 +150,7 @@ class DatabaseHelper {
           amount REAL DEFAULT 0,
           Vat_Number TEXT,
           PaymentMethod TEXT,
+          is_checked INTEGER DEFAULT 0,
           added_date TEXT,
           FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE SET NULL,
           FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE SET NULL
@@ -163,6 +166,24 @@ class DatabaseHelper {
       if (!hasPaymentMethod) {
         await db.execute('ALTER TABLE Sales ADD COLUMN PaymentMethod TEXT');
       }
+    }
+
+    if (oldVersion < 8) {
+      final salesColumns = await db.rawQuery('PRAGMA table_info(Sales)');
+      final hasPaymentMethod = salesColumns.any(
+        (c) => c['name'] == 'PaymentMethod',
+      );
+      if (!hasPaymentMethod) {
+        await db.execute('ALTER TABLE Sales ADD COLUMN PaymentMethod TEXT');
+      }
+    }
+
+    final salesColumns = await db.rawQuery('PRAGMA table_info(Sales)');
+    final hasIsChecked = salesColumns.any((c) => c['name'] == 'is_checked');
+    if (!hasIsChecked) {
+      await db.execute(
+        'ALTER TABLE Sales ADD COLUMN is_checked INTEGER DEFAULT 0',
+      );
     }
   }
 
@@ -277,6 +298,7 @@ class DatabaseHelper {
         'amount',
         'Vat_Number',
         'PaymentMethod',
+        'is_checked',
         'added_date',
         'QTY',
       };
@@ -399,6 +421,24 @@ class DatabaseHelper {
     return result;
   }
 
+  //Get sales Payment Methods (Check and Debit only)
+  Future<List<Map<String, dynamic>>> getPaymentMethods() async {
+    final db = await database;
+
+    final result = await db.rawQuery(''' 
+    SELECT Sales.*, items.name as item_name, shops.shop_name
+    FROM Sales 
+    LEFT JOIN items ON Sales.item_id = items.id
+    LEFT JOIN shops ON Sales.shop_id = shops.id
+    WHERE Sales.PaymentMethod IN ('Check', 'Debit')
+      AND COALESCE(Sales.is_checked, 0) = 0
+    ORDER BY Sales.id DESC
+  ''');
+
+    print('✅ Found ${result.length} records'); // Debug
+    return result;
+  }
+
   //Weekly sales
   Future<List<Map<String, dynamic>>> getWeeklySales() async {
     final db = await database;
@@ -466,6 +506,121 @@ class DatabaseHelper {
 
     print('✅ Found ${result.length} monthly records'); // Debug
     return result;
+  }
+
+  //Daily total Profit (Correct)
+  Future<double> getTodayTotalProfit() async {
+    final db = await database;
+    final today = DateTime.now();
+    final padded =
+        '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
+    final unpadded = '${today.day}/${today.month}/${today.year}';
+    // For each sale today, get the latest stock_price for the item
+    final rows = await db.rawQuery(
+      '''
+      SELECT S.selling_price, S.quantity_grams AS quantity_grams, St.stock_price
+      FROM Sales S
+      LEFT JOIN (
+        SELECT item_id, MAX(id) as max_stock_id
+        FROM Stock
+        GROUP BY item_id
+      ) latestStock ON S.item_id = latestStock.item_id
+      LEFT JOIN Stock St ON St.id = latestStock.max_stock_id
+      WHERE S.added_date = ? OR S.added_date = ?
+    ''',
+      [padded, unpadded],
+    );
+    double totalProfit = 0.0;
+    for (final row in rows) {
+      final sellingPrice = (row['selling_price'] ?? 0) as num;
+      final stockPrice = (row['stock_price'] ?? 0) as num;
+      final qtyGrams = (row['quantity_grams'] ?? 0) as num;
+      final profit = (sellingPrice - stockPrice) * (qtyGrams / 1000.0);
+      totalProfit += profit;
+    }
+    return totalProfit;
+  }
+
+  // Current Week total profit
+  Future<double> getWeeklyTotalProfit() async {
+    final db = await database;
+    final now = DateTime.now();
+    // Get the start of the week (Monday)
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    // Generate all dates in the current week as both D/M/YYYY and DD/MM/YYYY
+    final Set<String> weekDates = <String>{};
+    for (int i = 0; i < 7; i++) {
+      final date = startOfWeek.add(Duration(days: i));
+      weekDates.add('${date.day}/${date.month}/${date.year}');
+      weekDates.add(
+        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}',
+      );
+    }
+    // Create placeholders for the IN clause
+    final placeholders = List.filled(weekDates.length, '?').join(',');
+    final rows = await db.rawQuery('''
+      SELECT S.selling_price, S.quantity_grams AS quantity_grams, St.stock_price
+      FROM Sales S
+      LEFT JOIN (
+        SELECT item_id, MAX(id) as max_stock_id
+        FROM Stock
+        GROUP BY item_id
+      ) latestStock ON S.item_id = latestStock.item_id
+      LEFT JOIN Stock St ON St.id = latestStock.max_stock_id
+      WHERE S.added_date IN ($placeholders)
+    ''', weekDates.toList());
+    double totalProfit = 0.0;
+    for (final row in rows) {
+      final sellingPrice = (row['selling_price'] ?? 0) as num;
+      final stockPrice = (row['stock_price'] ?? 0) as num;
+      final qtyGrams = (row['quantity_grams'] ?? 0) as num;
+      final profit = (sellingPrice - stockPrice) * (qtyGrams / 1000.0);
+      totalProfit += profit;
+    }
+    return totalProfit;
+  }
+
+  //Current Month Total Profit
+  Future<double> getMonthlyTotalProfit() async {
+    final db = await database;
+    final now = DateTime.now();
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+
+    // Get the last day of the current month
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+
+    // Generate all dates in the current month as both D/M/YYYY and DD/MM/YYYY
+    final Set<String> monthDates = <String>{};
+    for (int i = 0; i < lastDayOfMonth.day; i++) {
+      final date = firstDayOfMonth.add(Duration(days: i));
+      monthDates.add('${date.day}/${date.month}/${date.year}');
+      monthDates.add(
+        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}',
+      );
+    }
+
+    // Create placeholders for the IN clause
+    final placeholders = List.filled(monthDates.length, '?').join(',');
+    final rows = await db.rawQuery('''
+      SELECT S.selling_price, S.quantity_grams AS quantity_grams, St.stock_price
+      FROM Sales S
+      LEFT JOIN (
+        SELECT item_id, MAX(id) as max_stock_id
+        FROM Stock
+        GROUP BY item_id
+      ) latestStock ON S.item_id = latestStock.item_id
+      LEFT JOIN Stock St ON St.id = latestStock.max_stock_id
+      WHERE S.added_date IN ($placeholders)
+    ''', monthDates.toList());
+    double totalProfit = 0.0;
+    for (final row in rows) {
+      final sellingPrice = (row['selling_price'] ?? 0) as num;
+      final stockPrice = (row['stock_price'] ?? 0) as num;
+      final qtyGrams = (row['quantity_grams'] ?? 0) as num;
+      final profit = (sellingPrice - stockPrice) * (qtyGrams / 1000.0);
+      totalProfit += profit;
+    }
+    return totalProfit;
   }
 
   //Today Sales Amount Total Price
