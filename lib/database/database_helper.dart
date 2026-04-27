@@ -79,7 +79,7 @@ class DatabaseHelper {
         item_id INTEGER NOT NULL,
         selling_price INTEGER NOT NULL,
         quantity_grams INTEGER,
-        amount REAL DEFAULT 0,            -- NEW COLUMN
+        amount REAL DEFAULT 0,          
         Vat_Number TEXT,
         PaymentMethod TEXT,
         is_checked INTEGER DEFAULT 0,
